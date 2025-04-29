@@ -1,5 +1,3 @@
-# Load libraries (no need to install them here anymore)
-library(devtools) # Still needed if you use any other devtools functions, otherwise optional
 library(worldfootballR)
 library(dplyr)
 
