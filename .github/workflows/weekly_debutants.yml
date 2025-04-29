@@ -27,7 +27,7 @@ jobs:
         shell: Rscript {0}
 
       - name: Run R script and capture output
-        run: Rscript debutants_script.R > debutants_output.txt 2>&1
+        run: Rscript debutants_script.R > debutants_output.txt
 
       - name: Send email report
         uses: dawidd6/action-send-mail@v3
