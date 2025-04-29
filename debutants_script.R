@@ -1,12 +1,17 @@
-# Working Debutants Analysis Script
-# This script is designed to work with confirmed column names
-
-# Install required packages
-if(!require(worldfootballR)) {
-  install.packages("worldfootballR")
+# Install required packages from CRAN if missing
+if (!requireNamespace("devtools", quietly = TRUE)) {
+  install.packages("devtools")
 }
-if(!require(dplyr)) {
+if (!requireNamespace("dplyr", quietly = TRUE)) {
   install.packages("dplyr")
+}
+
+# Load devtools for GitHub installation
+library(devtools)
+
+# Install worldfootballR from GitHub
+if (!requireNamespace("worldfootballR", quietly = TRUE)) {
+  devtools::install_github("JaseZiv/worldfootballR")
 }
 
 # Load libraries
