@@ -105,7 +105,7 @@ if(length(all_recent_debutants_list) > 0) {
 
 # Generate short report
 if (nrow(all_recent_debutants) > 0) {
-  cols_to_show <- c("player_name", "club_name", "age_debut")
+  cols_to_show <- c("player_name", "club_name", "debut_for")
   cols_to_show <- intersect(cols_to_show, colnames(all_recent_debutants))
   print(all_recent_debutants[, cols_to_show], max = 9999, row.names = FALSE)
 } else {
