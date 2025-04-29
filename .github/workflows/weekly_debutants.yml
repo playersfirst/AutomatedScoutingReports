@@ -1,7 +1,7 @@
 name: Weekly Debutants Report
 on:
   schedule:
-    - cron: '0 4 * * 3'
+    - cron: '0 4 * *3'
   workflow_dispatch:
 jobs:
   run-r-script:
@@ -22,11 +22,13 @@ jobs:
           
       - name: Install CRAN packages
         run: |
-          R -e "install.packages(c('remotes', 'dplyr', 'usethis', 'rcmdcheck', 'rversions', 'pkgdown', 'urlchecker'), repos = 'https://cloud.r-project.org')"
+          R -e "install.packages(c('remotes', 'dplyr', 'usethis', 'rcmdcheck', 'rversions', 'pkgdown', 'urlchecker', 'gitcreds'), repos = 'https://cloud.r-project.org')"
           
-      - name: Install devtools
+      - name: Set up GitHub PAT
         run: |
-          R -e "install.packages('devtools', repos = 'https://cloud.r-project.org')"
+          R -e "gitcreds::gitcreds_set()"
+        env:
+          GITHUB_PAT: ${{ secrets.GH_PAT }}
           
       - name: Install worldfootballR
         run: |
