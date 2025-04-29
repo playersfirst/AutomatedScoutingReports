@@ -9,156 +9,105 @@ today <- Sys.Date()
 one_week_ago <- today - 7
 cat("Looking for debutants between", as.character(one_week_ago), "and", as.character(today), "\n")
 
-# Function to get and process debutants data
+# Function to get and process debutants data with retries
 get_league_debutants <- function(country_name) {
-  cat(paste0("\nFetching data for ", country_name, "...\n"))
+  max_retries <- 3
+  attempt <- 1
   
-  # Fetch the data
-  tryCatch({
-    debutants <- tm_league_debutants(
-      country_name = country_name, 
-      debut_type = "league", 
-      debut_start_year = 2024, # Consider making these dynamic if needed
-      debut_end_year = 2024
-    )
+  while(attempt <= max_retries) {
+    cat(paste0("\nFetching data for ", country_name, " (Attempt ", attempt, "/", max_retries, ")...\n"))
     
-    if(nrow(debutants) > 0) {
-      cat("SUCCESS! Found", nrow(debutants), "debutants in", country_name, "this season.\n")
+    tryCatch({
+      debutants <- tm_league_debutants(
+        country_name = country_name, 
+        debut_type = "league", 
+        debut_start_year = 2024,
+        debut_end_year = 2024
+      )
       
-      # Print column names to verify structure
-      # cat("Data columns available:\n") # Keep for debugging if needed
-      # print(colnames(debutants))
-      
-      # Process dates - with extra safety checks 
-      if("debut_date" %in% colnames(debutants)) {
-        # Try to parse dates - show first few to check format
-        # cat("Sample debut dates (first 3):\n") # Keep for debugging if needed
-        # print(head(debutants$debut_date, 3))
+      if(nrow(debutants) > 0) {
+        cat("SUCCESS! Found", nrow(debutants), "debutants in", country_name, "this season.\n")
         
-        # Try to parse dates
-        debutants$date_parsed <- as.Date(debutants$debut_date, format = "%b %d, %Y")
-        
-        # Check if parsing worked - if not, try alternate format
-        if(all(is.na(debutants$date_parsed))) {
-          cat("First date format failed, trying alternative (%Y-%m-%d)...\n")
-          debutants$date_parsed <- as.Date(debutants$debut_date, format = "%Y-%m-%d")
-        }
-        
-        # If we have dates, filter for recent ones
-        if(!all(is.na(debutants$date_parsed))) {
-          recent_debutants <- debutants %>%
-            filter(date_parsed >= one_week_ago & date_parsed <= today)
-            
-          cat("Found", nrow(recent_debutants), "recent debutants (last 7 days) in", country_name, "\n")
-          if(nrow(recent_debutants) > 0) {
-            # cat("Recent debutants:\n") # Maybe too verbose for email? Output is in the file.
-            # print(recent_debutants)
+        # Process dates with multiple format attempts
+        if("debut_date" %in% colnames(debutants)) {
+          debutants$date_parsed <- as.Date(debutants$debut_date, format = "%b %d, %Y")
+          
+          if(all(is.na(debutants$date_parsed))) {
+            debutants$date_parsed <- as.Date(debutants$debut_date, format = "%Y-%m-%d")
           }
-          return(recent_debutants)
-        } else {
-          cat("WARNING: Could not parse dates properly for", country_name, "\n")
-          # Return the whole dataframe for this country if dates failed, but without date filtering
-          # Or return NULL if you only want date-filtered results
-          return(NULL) # Changed to NULL as filtering failed
+          
+          if(!all(is.na(debutants$date_parsed))) {
+            recent_debutants <- debutants %>%
+              filter(date_parsed >= one_week_ago & date_parsed <= today)
+            
+            cat("Found", nrow(recent_debutants), "recent debutants (last 7 days) in", country_name, "\n")
+            
+            # Add country column if not present
+            if(!"country" %in% names(recent_debutants)) {
+              recent_debutants$country <- country 
+            }
+            
+            return(recent_debutants)
+          }
         }
+        return(NULL)
       } else {
-        cat("WARNING: No 'debut_date' column found in the data for", country_name, "\n")
-        # Return NULL as we cannot filter by date
+        cat("No debutants found for", country_name, "\n")
         return(NULL)
       }
-    } else {
-      cat("No debutants found for", country_name, "\n")
-      return(NULL)
-    }
-  }, error = function(e) {
-    cat("ERROR fetching debutants for", country_name, ":", e$message, "\n")
-    return(NULL)
-  })
+    }, error = function(e) {
+      if(attempt == max_retries) {
+        cat("FINAL ERROR fetching debutants for", country_name, "after", max_retries, "attempts:", e$message, "\n")
+        return(NULL)
+      } else {
+        cat("Attempt", attempt, "failed for", country_name, "- retrying...\n")
+        Sys.sleep(5 * attempt) # Increasing delay between retries
+        attempt <<- attempt + 1
+      }
+    })
+  }
 }
 
-# Countries to check - add more as needed
+# Countries to check
 countries <- c("England", "Spain", "Germany", "Italy", "France", "Portugal", "Netherlands") 
 
 # Loop through each country
-all_recent_debutants_list <- list() # Use a list to collect data frames
+all_recent_debutants_list <- list()
 
 for(country in countries) {
   debutants_df <- get_league_debutants(country)
   
-  # If we have valid debutants, add them to our list
   if(!is.null(debutants_df) && nrow(debutants_df) > 0) {
-      # Add a country column for clarity if it doesn't exist from the function
-      if (!"country" %in% names(debutants_df)) {
-         debutants_df$country <- country 
-      }
-      all_recent_debutants_list[[country]] <- debutants_df
+    all_recent_debutants_list[[country]] <- debutants_df
   }
   
-  # Pause between requests to be polite to the server
+  # Pause between requests
   cat("Pausing for 5 seconds...\n")
   Sys.sleep(5) 
 }
 
-# Combine all results at the end
-all_recent_debutants <- bind_rows(all_recent_debutants_list)
-
-# Print summary of results to the output file (which becomes the email body)
-cat("\n\n=== WEEKLY DEBUTANTS REPORT ===\n")
-cat("Report generated on:", as.character(today), "\n")
-cat("Checked leagues in:", paste(countries, collapse=", "), "\n")
-cat("Reporting period:", as.character(one_week_ago), "to", as.character(today), "\n")
-
-if(nrow(all_recent_debutants) > 0) {
-  cat("\nTotal recent debutants found:", nrow(all_recent_debutants), "\n")
-
-  # Select and print key columns for the report
-  # Adjust columns as needed based on `tm_league_debutants` output
-  cols_to_show <- c("player_name", "age_at_debut", "position", "club_name", "competition_name", "debut_date", "country") 
-  # Filter cols_to_show to only those that actually exist in the final dataframe
-  cols_to_show <- intersect(cols_to_show, colnames(all_recent_debutants))
-  
-  if(length(cols_to_show) > 0) {
-      cat("\n--- Recent Debutants Details ---\n")
-      # Use print with max rows to avoid truncation in the log/email body
-      print(all_recent_debutants[, cols_to_show, drop = FALSE], max = 9999) 
-  } else {
-      cat("\nNOTE: Could not find standard columns to display details.\n")
-      print(all_recent_debutants, max=9999) # Print everything if standard columns missing
-  }
-
-  # Optional: Add summary stats back if desired
-  # Count by country/league
-  if("competition_name" %in% colnames(all_recent_debutants)) {
-    cat("\n--- Debutants by League ---\n")
-    league_counts <- table(all_recent_debutants$competition_name)
-    print(league_counts)
-  }
-  
-  # Count by club if available
-  if("club_name" %in% colnames(all_recent_debutants)) {
-    cat("\n--- Debutants by Club (Top 10) ---\n")
-    club_counts <- table(all_recent_debutants$club_name)
-    # Ensure we don't try to print more clubs than we found
-    top_n_clubs <- min(10, length(club_counts)) 
-    if (top_n_clubs > 0) {
-        print(sort(club_counts, decreasing = TRUE)[1:top_n_clubs]) 
-    } else {
-        cat("No club data available.\n")
-    }
-  }
-  
-  # Calculate average age if available
-  if("age_at_debut" %in% colnames(all_recent_debutants)) {
-    avg_age <- mean(as.numeric(all_recent_debutants$age_at_debut), na.rm = TRUE)
-    if (!is.na(avg_age)){
-       cat("\n--- Average Age ---\n")
-       cat("Average age of recent debutants:", round(avg_age, 2), "years\n")
-    }
-  }
-
+# Combine and process all results
+if(length(all_recent_debutants_list) > 0) {
+  all_recent_debutants <- bind_rows(all_recent_debutants_list) %>%
+    # Convert age to numeric
+    mutate(age_at_debut = as.numeric(age_at_debut)) %>%
+    # Filter for U21 players (include NA ages in case data is missing)
+    filter(age_at_debut < 21 | is.na(age_at_debut)) %>%
+    # Remove duplicates - using cleaned names and country
+    mutate(clean_name = tolower(trimws(gsub("[^a-zA-Z]", "", player_name)))) %>%
+    distinct(clean_name, country, .keep_all = TRUE) %>%
+    select(-clean_name) %>%
+    # Sort by debut date (newest first)
+    arrange(desc(date_parsed))
 } else {
-  cat("\nNo recent league debutants found across the selected leagues in the past week.\n")
-  cat("Consider checking the source website (Transfermarkt) or adjusting the script parameters if this seems incorrect.\n")
+  all_recent_debutants <- data.frame()
 }
 
-cat("\n=== END OF REPORT ===\n")
+# Generate short report
+if (nrow(all_recent_debutants) > 0) {
+  cols_to_show <- c("player_name", "club_name", "age_at_debut")
+  cols_to_show <- intersect(cols_to_show, colnames(all_recent_debutants))
+  print(all_recent_debutants[, cols_to_show], max = 9999, row.names = FALSE)
+} else {
+  cat("No debutants this week\n")
+}
