@@ -5,7 +5,7 @@ on:
   schedule:
     # Runs at 08:00 UTC every Monday. Adjust cron time as needed.
     # See: https://crontab.guru/
-    - cron: '0 8 * * 1'
+    - cron: '0 4 * * 3'
   workflow_dispatch: # Allows manual triggering from GitHub Actions tab
 
 jobs:
@@ -20,13 +20,28 @@ jobs:
         with:
           r-version: 'release' # Use the latest release of R
 
-      - name: Install R dependencies
+      # --- MODIFIED INSTALLATION STEPS ---
+      - name: Install system dependencies (if any needed by packages)
         run: |
-          # Install packages explicitly for clarity in Actions
-          install.packages(c("worldfootballR", "dplyr"), dependencies = TRUE)
+          # Add commands here if packages like devtools or its dependencies need system libraries
+          # e.g., sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+          echo "No specific system dependencies added for now."
+        # Optional: Add if you encounter system library issues during package install
+
+      - name: Install Core R Dependencies (devtools, dplyr)
+        run: |
+          options(install.packages.check.source = "no") # Speed up install slightly on Linux
+          install.packages(c("devtools", "dplyr"), dependencies = TRUE)
         shell: Rscript {0}
 
+      - name: Install worldfootballR from GitHub
+        run: |
+          devtools::install_github("JaseZiv/worldfootballR", dependencies = TRUE, upgrade = "never")
+        shell: Rscript {0}
+      # --- END OF MODIFIED STEPS ---
+
       - name: Run R script and capture output
+        # Ensure your script doesn't try to re-install packages now
         run: Rscript debutants_script.R > debutants_output.txt
 
       - name: Send email report
