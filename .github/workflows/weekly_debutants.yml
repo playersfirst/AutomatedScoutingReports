@@ -1,68 +1,49 @@
-# .github/workflows/weekly_debutants.yml
 name: Weekly Debutants Report
-
 on:
   schedule:
-    # Runs at 08:00 UTC every Monday. Adjust cron time as needed.
-    # See: https://crontab.guru/
-    - cron: '0 4 * * 3'
-  workflow_dispatch: # Allows manual triggering from GitHub Actions tab
-
+    - cron: '0 4 * *3'
+  workflow_dispatch:
 jobs:
   run-r-script:
-    runs-on: ubuntu-latest # Use a Linux runner
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 # Checks out your code
-
+        uses: actions/checkout@v4
+        
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
         with:
-          r-version: 'release' # Use the latest release of R
-
-      # --- MODIFIED INSTALLATION STEPS ---
-      - name: Install system dependencies (if any needed by packages)
+          r-version: 'release'
+          
+      - name: Install system dependencies
         run: |
-          # Add commands here if packages like devtools or its dependencies need system libraries
-          # e.g., sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
-          echo "No specific system dependencies added for now, but may be needed if install still fails."
-        # Optional: Add if you encounter system library issues during package install
-
-      - name: Install Core R Dependencies (devtools, its deps, dplyr)
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+          
+      - name: Install CRAN packages
         run: |
-          # Explicitly list missing dependencies identified in the previous run's error log
-          # Also include devtools itself and other script dependencies like dplyr
-          install.packages(c(
-            'usethis', 
-            'pkgdown', 
-            'rcmdcheck', 
-            'rversions', 
-            'urlchecker',
-            'devtools',  # Now install devtools
-            'dplyr'      # Include other direct dependencies
-          ), dependencies = TRUE) # dependencies=TRUE helps catch further nested dependencies
-        shell: Rscript {0}
-
-      - name: Install worldfootballR from GitHub
+          R -e "install.packages(c('remotes', 'dplyr', 'usethis', 'rcmdcheck', 'rversions', 'pkgdown', 'urlchecker'), repos = 'https://cloud.r-project.org')"
+          
+      - name: Install devtools
         run: |
-          # This step should now succeed because devtools and its dependencies are installed
-          devtools::install_github("JaseZiv/worldfootballR", dependencies = TRUE, upgrade = "never")
-        shell: Rscript {0}
-      # --- END OF MODIFIED STEPS ---
-
-      - name: Run R script and capture output
-        # Ensure your script doesn't try to re-install packages now
+          R -e "install.packages('devtools', repos = 'https://cloud.r-project.org')"
+          
+      - name: Install worldfootballR
+        run: |
+          R -e "remotes::install_github('JaseZiv/worldfootballR', dependencies = TRUE, upgrade = 'never')"
+          
+      - name: Run R script
         run: Rscript debutants_script.R > debutants_output.txt
-
+        
       - name: Send email report
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
-          server_port: 465 # Gmail uses port 465 for SSL
+          server_port: 465
           username: scoutinglk123@gmail.com
-          password: ${{ secrets.MAIL_PASSWORD }} # Use the secret!
+          password: ${{ secrets.MAIL_PASSWORD }}
           subject: Weekly Debutants Report (${{ github.run_id }})
-          body_file: debutants_output.txt # Attach the script's output as the body
+          body_file: debutants_output.txt
           to: scoutinglk123@gmail.com
-          from: GitHub Actions Runner <scoutinglk123@gmail.com> # 'Name <email>' format
-          secure: true # Use true for SSL (port 465)
+          from: GitHub Actions Runner
+          secure: true
