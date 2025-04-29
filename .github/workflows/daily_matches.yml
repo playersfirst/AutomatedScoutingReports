@@ -1,4 +1,3 @@
-# .github/workflows/daily_matches.yml
 name: Daily Matches Check
 
 on:
@@ -25,7 +24,19 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Python script and capture output
-        run: python matches_script.py > matches_output.txt
+        id: run-script
+        run: |
+          python matches_script.py > matches_output.txt
+          echo "SCRIPT_OUTPUT<<EOF" >> $GITHUB_ENV
+          cat matches_output.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Debug output (optional)
+        run: |
+          echo "Generated output content:"
+          cat matches_output.txt
+          echo "Environment variable content:"
+          echo "${{ env.SCRIPT_OUTPUT }}"
 
       - name: Send email report
         uses: dawidd6/action-send-mail@v3
@@ -33,9 +44,9 @@ jobs:
           server_address: smtp.gmail.com
           server_port: 465
           username: scoutinglk123@gmail.com
-          password: ${{ secrets.MAIL_PASSWORD }} # Use the secret!
+          password: ${{ secrets.MAIL_PASSWORD }}
           subject: Daily Matches Check (${{ github.run_id }})
-          body_file: matches_output.txt # Attach the script's output
           to: scoutinglk123@gmail.com
           from: GitHub Actions Runner <scoutinglk123@gmail.com>
+          body: ${{ env.SCRIPT_OUTPUT }}
           secure: true
