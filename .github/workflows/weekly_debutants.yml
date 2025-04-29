@@ -22,15 +22,11 @@ jobs:
           
       - name: Install CRAN packages
         run: |
-          R -e "install.packages(c('remotes', 'dplyr', 'usethis', 'rcmdcheck', 'rversions', 'pkgdown', 'urlchecker', 'gitcreds'), repos = 'https://cloud.r-project.org')"
-          
-      - name: Set up GitHub PAT
-        run: |
-          R -e "gitcreds::gitcreds_set()"
-        env:
-          GITHUB_PAT: ${{ secrets.GH_PAT }}
+          R -e "install.packages(c('remotes', 'dplyr'), repos = 'https://cloud.r-project.org')"
           
       - name: Install worldfootballR
+        env:
+          GITHUB_PAT: ${{ secrets.GH_PAT }}
         run: |
           R -e "remotes::install_github('JaseZiv/worldfootballR', dependencies = TRUE, upgrade = 'never')"
           
