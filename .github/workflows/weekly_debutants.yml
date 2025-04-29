@@ -30,9 +30,15 @@ jobs:
         run: |
           R -e "remotes::install_github('JaseZiv/worldfootballR', dependencies = TRUE, upgrade = 'never')"
           
-      - name: Run R script
-        run: Rscript debutants_script.R > debutants_output.txt
-        
+      - name: Run R script and capture output
+        id: run-script
+        run: |
+          Rscript debutants_script.R > output.txt
+          echo "SCRIPT_OUTPUT<<EOF" >> $GITHUB_ENV
+          cat output.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          echo "Output saved to environment variable"
+          
       - name: Send email report
         uses: dawidd6/action-send-mail@v3
         with:
@@ -41,7 +47,7 @@ jobs:
           username: scoutinglk123@gmail.com
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: Weekly Debutants Report (${{ github.run_id }})
-          body_file: debutants_output.txt
           to: scoutinglk123@gmail.com
           from: GitHub Actions Runner
+          body: ${{ env.SCRIPT_OUTPUT }}
           secure: true
