@@ -90,9 +90,9 @@ for(country in countries) {
 if(length(all_recent_debutants_list) > 0) {
   all_recent_debutants <- bind_rows(all_recent_debutants_list) %>%
     # Convert age to numeric
-    mutate(age_at_debut = as.numeric(age_at_debut)) %>%
+    mutate(age_debut = as.numeric(age_debut)) %>%
     # Filter for U21 players (include NA ages in case data is missing)
-    filter(age_at_debut < 21 | is.na(age_at_debut)) %>%
+    filter(age_debut < 21 | is.na(age_debut)) %>%
     # Remove duplicates - using cleaned names and country
     mutate(clean_name = tolower(trimws(gsub("[^a-zA-Z]", "", player_name)))) %>%
     distinct(clean_name, country, .keep_all = TRUE) %>%
@@ -105,7 +105,7 @@ if(length(all_recent_debutants_list) > 0) {
 
 # Generate short report
 if (nrow(all_recent_debutants) > 0) {
-  cols_to_show <- c("player_name", "club_name", "age_at_debut")
+  cols_to_show <- c("player_name", "club_name", "age_debut")
   cols_to_show <- intersect(cols_to_show, colnames(all_recent_debutants))
   print(all_recent_debutants[, cols_to_show], max = 9999, row.names = FALSE)
 } else {
