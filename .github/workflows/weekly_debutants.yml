@@ -1,7 +1,7 @@
 name: Weekly Debutants Report
 on:
   schedule:
-    - cron: '0 4 * *3'
+    - cron: '0 4 * * 3'
   workflow_dispatch:
 jobs:
   run-r-script:
