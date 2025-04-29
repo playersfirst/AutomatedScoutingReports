@@ -30,16 +30,45 @@ jobs:
         run: |
           R -e "remotes::install_github('JaseZiv/worldfootballR', dependencies = TRUE, upgrade = 'never')"
           
-      - name: Run R script and capture output
+      - name: Run R script with error checking
         id: run-script
         run: |
+          # Run script and capture output and exit code
           Rscript debutants_script.R > output.txt
+          EXIT_CODE=$?
           echo "SCRIPT_OUTPUT<<EOF" >> $GITHUB_ENV
           cat output.txt >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-          echo "Output saved to environment variable"
+          
+          # Check for errors in output
+          if grep -q "ERROR" output.txt; then
+            echo "ERROR_DETECTED=true" >> $GITHUB_ENV
+            echo "::error::Error detected in league data - will retry"
+            exit 1
+          elif [ $EXIT_CODE -ne 0 ]; then
+            echo "ERROR_DETECTED=true" >> $GITHUB_ENV
+            echo "::error::Script failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          else
+            echo "ERROR_DETECTED=false" >> $GITHUB_ENV
+          fi
+          
+      - name: Retry on error
+        if: ${{ env.ERROR_DETECTED == 'true' }}
+        run: |
+          echo "Retrying script..."
+          Rscript debutants_script.R > output.txt
+          EXIT_CODE=$?
+          if grep -q "ERROR" output.txt || [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::Error still present after retry - aborting"
+            exit 1
+          fi
+          echo "SCRIPT_OUTPUT<<EOF" >> $GITHUB_ENV
+          cat output.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
           
       - name: Send email report
+        if: ${{ env.ERROR_DETECTED != 'true' }}
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
