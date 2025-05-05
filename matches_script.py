@@ -8,7 +8,7 @@ def check_teams_in_matches():
         "Blackburn Rovers": r"\bBlackburn Rovers\b",
         "Burgos": r"(?<!\w)Burgos(?!\w)",  # Matches "Burgos" only if not preceded or followed by a word character
         "Almeria": r"\bAlmeria\b",
-        "Sassuolo": r"\bSassuolo\b"
+        "Torino": r"\bTorino\b"
     }
 
     # Fetch the XML feed
