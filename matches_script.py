@@ -3,10 +3,10 @@ import re
 from bs4 import BeautifulSoup
 
 def check_teams_in_matches():
-    # Teams to search for (more specific regex for "Burgos")
+    # Teams to search for with specific score formats
     target_teams = {
         "Blackburn Rovers": r"\bBlackburn Rovers\b",
-        "Burgos": r"(?<!\w)Burgos(?!\w)",  # Matches "Burgos" only if not preceded or followed by a word character
+        "Burgos_Score": r"(?:\d+ - \d+ Burgos\b|\bBurgos \d+ - \d+)",
         "Almeria": r"\bAlmeria\b",
         "Torino": r"\bTorino\b"
     }
@@ -32,7 +32,9 @@ def check_teams_in_matches():
 
     found_teams = []
     for team_name, team_pattern in target_teams.items():
-        if re.search(team_pattern, description, re.IGNORECASE):
+        if team_name == "Burgos_Score" and re.search(team_pattern, description, re.IGNORECASE):
+            found_teams.append("Burgos") # Report it as "Burgos"
+        elif team_name != "Burgos_Score" and re.search(team_pattern, description, re.IGNORECASE):
             found_teams.append(team_name)
 
     if found_teams:
