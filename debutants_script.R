@@ -115,11 +115,29 @@ if(length(all_recent_debutants_list) > 0) {
   all_recent_debutants <- data.frame()
 }
 
-# Generate short report
+# Generate nicely formatted output with line breaks between URLs
 if (nrow(all_recent_debutants) > 0) {
-  cols_to_show <- c("player_name", "debut_for", "player_url", "age_debut")
-  cols_to_show <- intersect(cols_to_show, colnames(all_recent_debutants))
-  print(all_recent_debutants[, cols_to_show], max = 9999, row.names = FALSE)
+  # First create the email header
+  cat("Weekly U21 Debutants Report (", format(one_week_ago, "%b %d"), " - ", format(today, "%b %d, %Y"), ")\n\n", sep="")
+  
+  # Loop through each player to create a formatted entry
+  for (i in 1:nrow(all_recent_debutants)) {
+    player <- all_recent_debutants[i,]
+    
+    # Format the player information
+    cat(sprintf("Player: %s\n", player$player_name))
+    cat(sprintf("Club: %s (%s)\n", player$debut_for, player$country))
+    if (!is.na(player$age_debut)) {
+      cat(sprintf("Age: %s\n", player$age_debut))
+    }
+    if (!is.na(player$player_url)) {
+      cat(sprintf("Profile: %s\n\n", player$player_url))
+    } else {
+      cat("\n")
+    }
+  }
+  
+  cat("\n--- End of Report ---\n")
 } else {
-  cat("No debutants this week\n")
+  cat("No U21 debutants found for the week of ", format(one_week_ago, "%b %d"), " - ", format(today, "%b %d, %Y"), "\n", sep="")
 }
