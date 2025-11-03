@@ -20,8 +20,8 @@ get_league_debutants <- function(country_name) {
       debutants <- tm_league_debutants(
         country_name = country_name, 
         debut_type = "league", 
-        debut_start_year = 2024,
-        debut_end_year = 2024
+        debut_start_year = 2025,
+        debut_end_year = 2025
       )
       
       if(nrow(debutants) > 0) {
